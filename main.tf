@@ -5,6 +5,7 @@
 resource "aws_eip" "nat_eip" {
   count = length(module.vpc.private_subnets)
 
+
   tags = {
     Name = "nat eip"
   }
@@ -22,6 +23,7 @@ module "vpc" {
   public_subnets  = var.vpc_public_subnets
 
   enable_nat_gateway = var.vpc_enable_nat_gateway
+  create_igw = true
   reuse_nat_ips = true # Skip creation of EIPs for the NAT Gateways
   external_nat_ip_ids = aws_eip.nat_eip[*].id # IPs specified here as input to the module
 
@@ -31,6 +33,7 @@ module "vpc" {
   }
 }
 
+/*
 # Internet Gateway
 resource "aws_internet_gateway" "internet_gw" {
   vpc_id     = module.vpc.vpc_id
@@ -81,7 +84,7 @@ resource "aws_route_table_association" "nat_gateway_route_associate" {
   count = length(module.vpc.private_subnets)
   subnet_id      = module.vpc.private_subnets[count.index].id
   route_table_id = aws_route_table.private[count.index].id
-}
+}*/
 
 
 ####################################################
@@ -94,8 +97,8 @@ resource "aws_lb" "web_server_lb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_security_group.id]
-  subnets = module.vpc.public_subnets
-  depends_on         = [aws_nat_gateway.nat_gw]
+  subnets            = [module.vpc.public_subnets.id]
+  # [for subnet in module.vpc.public_subnets : subnet.id]
 
   enable_deletion_protection = true  # Set to true if you want to enable deletion protection
 
@@ -115,30 +118,27 @@ resource "aws_lb_target_group" "web_servers_target_group" {
   #target_type = "instance"
   load_balancing_algorithm_type = "round_robin"
 
-  #stickiness {
-  #  enabled = false
-  #  type    = "lb_cookie"
-  #}
 
   health_check {
     enabled              = true
-    path                = "/health"
+    path                = var.health_check_path
     port                = 80
     protocol            = "HTTP"
     unhealthy_threshold = 2
     healthy_threshold   = 2
-    timeout             = 3
-    interval            = 10
+    timeout             = 65
+    interval            = 100
+    matcher = "200"
   }
 }
 
 
 # Register web server instances with the target group
 resource "aws_lb_target_group_attachment" "web_servers_attachment" {
-  count           = var.instance_count
-  target_group_arn = aws_lb_target_group.web_servers_target_group.arn
-  #TODO: target_id       = aws_ecs_service.web_servers.id
+  count = var.instance_count
+  target_group_arn = aws_instance.web_servers[count.index].id
   target_id       = aws_instance.web_servers[count.index].id
+  port = 80
 }
 
 
@@ -170,7 +170,7 @@ resource "aws_lb_listener_rule" "lb_health_check" {
 
   condition {
     path_pattern {
-      values = ["/health"]
+      values = [var.health_check_path]
     }
   }
 }
@@ -213,7 +213,7 @@ resource "aws_security_group" "alb_security_group" {
     from_port        = 80
     to_port          = 80
     cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    #ipv6_cidr_blocks = ["::/0"]
   }
   
   ingress {
@@ -222,7 +222,7 @@ resource "aws_security_group" "alb_security_group" {
     from_port        = 443
     to_port          = 443
     cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    #ipv6_cidr_blocks = ["::/0"]
   }
 
   egress {
@@ -284,11 +284,11 @@ resource "aws_key_pair" "web-servers-key-pair" {
 # Create web server instances
 resource "aws_instance" "web_servers" {
   count         = var.instance_count
-  ami           = "ami-0f8e81a3da6e2510a"  # Specify the AMI ID for your Ubuntu image
-  instance_type = "t2.micro"           # Choose an appropriate instance type
+  ami           = var.ami_id  # Specify the AMI ID for your Ubuntu image
+  instance_type = var.instance_type           # Choose an appropriate instance type
   key_name      = aws_key_pair.web-servers-key-pair.key_name
   #iam_instance_profile = data.aws_iam_role.iam_role.name
-  subnet_id = element(module.vpc.private_subnets, count.index)
+  subnet_id = module.vpc.private_subnets[count.index % length(module.vpc.private_subnets)]
   vpc_security_group_ids      = [aws_security_group.ec2_security_group.id]
   
   # Define your instance configuration here (e.g., user data for running a web server)
@@ -310,9 +310,8 @@ resource "aws_instance" "web_servers" {
               EOF
   
   tags = {
-    "Name"        = "web-server-${count.index + 1}"
-    "Environment" = "Test"
-    "CreatedBy"   = "Terraform"
+    "Name"        = "${var.environment}-web-server-${count.index + 1}"
+    "Environment" = var.environment
   }
   timeouts {
     create = "10m"
