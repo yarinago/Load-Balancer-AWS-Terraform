@@ -97,10 +97,10 @@ resource "aws_lb" "web_server_lb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_security_group.id]
-  subnets            = [module.vpc.public_subnets.id]
+  subnets            = module.vpc.public_subnets
   # [for subnet in module.vpc.public_subnets : subnet.id]
 
-  enable_deletion_protection = true  # Set to true if you want to enable deletion protection
+  enable_deletion_protection = false  # Set to true if you want to enable deletion protection
 
   tags = {
     Name = "load-balancer"
@@ -121,7 +121,7 @@ resource "aws_lb_target_group" "web_servers_target_group" {
 
   health_check {
     enabled              = true
-    path                = var.health_check_path
+    path                = "/health"
     port                = 80
     protocol            = "HTTP"
     unhealthy_threshold = 2
@@ -136,7 +136,7 @@ resource "aws_lb_target_group" "web_servers_target_group" {
 # Register web server instances with the target group
 resource "aws_lb_target_group_attachment" "web_servers_attachment" {
   count = var.instance_count
-  target_group_arn = aws_instance.web_servers[count.index].id
+  target_group_arn = aws_lb_target_group.web_servers_target_group.arn
   target_id       = aws_instance.web_servers[count.index].id
   port = 80
 }
@@ -157,7 +157,7 @@ resource "aws_lb_listener" "web_servers_listener" {
 
 # Define a listener for HTTP traffic on port 80
 resource "aws_lb_listener_rule" "lb_health_check" {
-  listener_arn = aws_lb.web_server_lb.arn
+  listener_arn = aws_lb_listener.web_servers_listener.arn
 
   action {
     type             = "fixed-response"
