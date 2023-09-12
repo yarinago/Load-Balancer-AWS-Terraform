@@ -58,6 +58,12 @@ variable "vpc_enable_nat_gateway" {
   default     = true
 }
 
+variable "instance_tenancy" {
+  description = "it defines the tenancy of VPC. Whether it's default or dedicated"
+  type        = string
+  default     = "default"
+}
+
 ################## ALB ##################
 
 variable "health_check_path" {
@@ -77,12 +83,6 @@ variable "alb_name" {
 variable "ec2_instance_name" {
   description = "Name of the EC2 instance"
   default     = "terraform-lab"
-}
-
-variable "instance_tenancy" {
-  description = "it defines the tenancy of VPC. Whether it's defsult or dedicated"
-  type        = string
-  default     = "default"
 }
 
 variable "ami_id" {

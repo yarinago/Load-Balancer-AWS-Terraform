@@ -2,10 +2,17 @@
 # VPC
 ####################################################
 
+resource "aws_eip" "nat_eip" {
+  vpc        = true
+  depends_on = [aws_internet_gateway.internet-gw]
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-nat-eip"
+  }
+}
+
 resource "aws_vpc" "vpc" {
   cidr_block           = var.vpc_cidr
-  enable_dns_support   = true
-  enable_dns_hostnames = true
   tags = {
     Name = "${var.environment}-${var.project_name}-vpc"
   }
@@ -19,7 +26,19 @@ resource "aws_subnet" "public_subnet" {
   availability_zone = var.vpc_azs[count.index % length(var.vpc_azs)]
 
   tags = {
-    Name = "${var.environment}-public-subnet"
+    Name = "${var.environment}-public-subnet-${count.index}"
+  }
+}
+
+# Private subnetss
+resource "aws_subnet" "private_subnet" { 
+  count = length(var.vpc_private_subnets)
+  cidr_block        = var.vpc_private_subnets[count.index]
+  vpc_id            = aws_vpc.vpc.id
+  availability_zone = var.vpc_azs[count.index % length(var.vpc_azs)]
+  tags = {
+    Name = "${var.environment}-private-subnet-${count.index}"
+    Environment = var.environment
   }
 }
 
@@ -33,33 +52,9 @@ resource "aws_internet_gateway" "internet-gw" {
   }
 }
 
-# Private subnetss
-resource "aws_subnet" "private_subnet" { 
-  count = length(var.vpc_private_subnets)
-  cidr_block        = var.vpc_private_subnets[count.index]
-  vpc_id            = aws_vpc.vpc.id
-  availability_zone = var.vpc_azs[count.index % length(var.vpc_azs)]
-  tags = {
-    Name = "${var.environment}-public-subnet"
-    Environment = var.environment
-  }
-}
-
-resource "aws_eip" "nat_eip" {
-  count = length(var.vpc_private_subnets)
-  vpc        = true
-  associate_with_private_ip = var.vpc_private_subnets[count.index]
-  depends_on                = [aws_internet_gateway.internet-gw]
-
-  tags = {
-    Name = "${var.project_name}-${var.environment}-nat-eip-${count.index}"
-  }
-}
-
 resource "aws_nat_gateway" "nat_gw" {
-  count = length(var.vpc_private_subnets)
-  allocation_id = aws_eip.nat_eip[count.index].id
-  subnet_id     = aws_subnet.private_subnet[count.index]
+  allocation_id = aws_eip.nat_eip.id
+  subnet_id     = aws_subnet.private_subnet[0].id
   depends_on = [aws_eip.nat_eip]
 
   tags = {
@@ -71,14 +66,25 @@ resource "aws_nat_gateway" "nat_gw" {
 resource "aws_route_table" "public_route_table" {
   vpc_id = aws_vpc.vpc.id
 
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.internet-gw.id
+  }
+
   tags = {
     Name = "${var.environment}-${var.project_name}-public-rt"
     Environment = var.environment
   }
 }
 
+
 resource "aws_route_table" "private_route_table" {
   vpc_id = aws_vpc.vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat_gw.id
+  }
 
   tags = {
     Name = "${var.environment}-${var.project_name}-private-rt"
@@ -86,30 +92,17 @@ resource "aws_route_table" "private_route_table" {
   }
 }
 
-# Route the public subnet traffic through the Internet Gateway
-resource "aws_route" "public-internet-igw-route" {
-  route_table_id         = aws_route_table.public_route_table.id
-  gateway_id             = aws_internet_gateway.internet-gw.id
-  destination_cidr_block = "0.0.0.0/0"
-}
-
-# Route NAT Gateway
-resource "aws_route" "nat-gw-route" {
-  route_table_id         = aws_route_table.private_route_table.id
-  nat_gateway_id         = aws_nat_gateway.nat_gw.id
-  destination_cidr_block = "0.0.0.0/0"
-}
 
 # Associate the newly created route tables to the subnets
-resource "aws_route_table_association" "public-route-2-association" {
+resource "aws_route_table_association" "public-route-association" {
   count = length(aws_subnet.public_subnet)
   route_table_id = aws_route_table.public_route_table.id
-  subnet_id      = aws_subnet.public_subnet[count.index].id
+  subnet_id      = element(aws_subnet.public_subnet.*.id, count.index)
 }
-resource "aws_route_table_association" "private-route-1-association" {
+resource "aws_route_table_association" "private-route-association" {
   count = length(aws_subnet.private_subnet)
   route_table_id = aws_route_table.private_route_table.id
-  subnet_id      = aws_subnet.private_subnet[count.index].id
+  subnet_id      = element(aws_subnet.private_subnet.*.id, count.index)
 }
 
 /* # route table for public subnet - connecting to Internet gateway
@@ -158,7 +151,7 @@ resource "aws_lb" "web_server_lb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_security_group.id]
-  subnets = [aws_subnet.public_subnet.id]
+  subnets = aws_subnet.public_subnet.*.id
 
   #enable_deletion_protection = true  # Set to true if you want to enable deletion protection
 
@@ -171,18 +164,18 @@ resource "aws_lb" "web_server_lb" {
 
 # Define a target group for the web server instances
 resource "aws_lb_target_group" "web_servers_target_group" {
-  name     = "${aws_lb.web_server_lb.name}-target-group"
+  name     = "alb-target-group"
   port     = 80
   protocol = "HTTP"
   vpc_id     = aws_vpc.vpc.id
   #target_type = "instance"
-  load_balancing_algorithm_type = "round_robin"
+  #load_balancing_algorithm_type = "round_robin"
 
   health_check {
     enabled              = true
     path                = var.health_check_path
     port                = 80
-    protocol            = "HTTP"
+    protocol = "HTTP"
     unhealthy_threshold = 2
     healthy_threshold   = 2
     timeout             = 65
@@ -195,10 +188,10 @@ resource "aws_lb_target_group" "web_servers_target_group" {
 
 # Register web server instances with the target group
 resource "aws_lb_target_group_attachment" "web_servers_attachment" {
-  count           = var.instance_count
+  count           = length(aws_instance.web_servers.*.id)
   target_group_arn = aws_lb_target_group.web_servers_target_group.arn
   #TODO: target_id       = aws_ecs_service.web_servers.id
-  target_id       = aws_lb_target_group.web_servers_target_group.id
+  target_id       = aws_instance.web_servers[count.index].id
 }
 
 
@@ -207,7 +200,6 @@ resource "aws_lb_listener" "web_servers_listener" {
   load_balancer_arn = aws_lb.web_server_lb.arn
   port              = 80
   protocol          = "HTTP"
-  depends_on        = [aws_alb_target_group.web_servers_target_group]
 
   # Forward incoming requests to the target group
   default_action {
@@ -314,7 +306,7 @@ resource "aws_instance" "web_servers" {
   instance_type = var.instance_type           # Choose an appropriate instance type
   key_name      = aws_key_pair.web-servers-key-pair.key_name
   #iam_instance_profile = data.aws_iam_role.iam_role.name
-  subnet_id = aws_subnet.private_subnet.id
+  subnet_id = element(aws_subnet.private_subnet.*.id, count.index % length(var.vpc_private_subnets))
   vpc_security_group_ids      = [aws_security_group.ec2_security_group.id]
   
   # Define your instance configuration here (e.g., user data for running a web server)
