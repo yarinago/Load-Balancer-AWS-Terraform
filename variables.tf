@@ -1,4 +1,12 @@
+variable "account" {
+  description = "The AWS Account Number (10 digit) to create resources in."
+  type = string
+}
 
+variable "region" {
+  description = "The AWS region to create resources in."
+  default     = "us-east-1"
+}
 
 variable "environment" {
   description = "Name of environment"
@@ -50,7 +58,26 @@ variable "vpc_enable_nat_gateway" {
   default     = true
 }
 
+################## ALB ##################
+
+variable "health_check_path" {
+  description = "Health check path for the default target group"
+  type = string
+  default     = "/health"
+}
+
+variable "alb_name" {
+  description = "The Application Load Balancer name"
+  type = string
+  default     = "load-balancer"
+}
+
 ################## EC2 ##################
+
+variable "ec2_instance_name" {
+  description = "Name of the EC2 instance"
+  default     = "terraform-lab"
+}
 
 variable "instance_tenancy" {
   description = "it defines the tenancy of VPC. Whether it's defsult or dedicated"
@@ -61,7 +88,7 @@ variable "instance_tenancy" {
 variable "ami_id" {
   description = "ami id"
   type        = string
-  default     = "ami-087c17d1fe0178315"
+  default     = "ami-053b0d53c279acc90"
 }
 
 variable "instance_type" {
@@ -70,8 +97,8 @@ variable "instance_type" {
   default     = "t2.micro"
 }
 
-#variable "ssh_private_key" {
-#  description = "pem file of Keypair we used to login to EC2 instances"
-#  type        = string
-#  default     = "./Keypair-01.pem"
-#}
+/*variable "ssh_private_key" {
+  description = "pem file of Keypair we used to login to EC2 instances"
+  type        = string
+  default     = "~/.ssh/aws/key_pair.pem"
+}*/
