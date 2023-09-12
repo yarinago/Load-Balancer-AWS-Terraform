@@ -13,8 +13,9 @@ terraform {
 }
 
 provider "aws" {
-  shared_credentials_files = ["~/.aws/creds"]
-  profile                  = "beaconcure-terraform"
+  region                  = var.region
+  shared_credentials_files = ["~/.aws/credentials"]
+  profile                  = "default"
 }
 
 provider "docker" {}
