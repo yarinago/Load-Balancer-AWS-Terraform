@@ -1,8 +1,4 @@
-variable "account" {
-  description = "The AWS Account Number (10 digit) to create resources in."
-  type = string
-}
-
+/*
 variable "region" {
   description = "The AWS region to create resources in."
   default     = "us-east-1"
@@ -56,12 +52,6 @@ variable "vpc_enable_nat_gateway" {
   description = "Enable NAT gateway for VPC"
   type        = bool
   default     = true
-}
-
-variable "instance_tenancy" {
-  description = "it defines the tenancy of VPC. Whether it's default or dedicated"
-  type        = string
-  default     = "default"
 }
 
 ################## ALB ##################

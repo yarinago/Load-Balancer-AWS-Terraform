@@ -36,6 +36,11 @@ install_requirements() {
 
 # Function to install Terraform
 install_terraform() {
+    if [ "$TERRAFORM_VERSION" = "-1" ]; then
+        echo "Skipping Terraform installation..."
+        return
+    fi
+
     echo "Installing Terraform..."
     curl -o terraform.zip https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
     unzip terraform.zip
@@ -45,6 +50,11 @@ install_terraform() {
 
 # Function to install AWS CLI
 install_awscli() {
+    if [ "$AWSCLI_VERSION" = "-1" ]; then
+        echo "Skipping AWS CLI installation..."
+        return
+    fi
+    
     echo "Installing AWS CLI..."
     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWSCLI_VERSION}.zip" -o "awscliv2.zip"
     unzip awscliv2.zip

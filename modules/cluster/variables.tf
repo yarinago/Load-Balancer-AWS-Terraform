@@ -18,6 +18,17 @@ variable "instance_count" {
   type        = number
 }
 
+variable "shared_credentials_files" {
+  description = "The path to the aws profile's credentials files"
+  type        = string
+}
+
+variable "aws_profile" {
+  description = "The name of the AWS profile"
+  type        = string
+}
+
+
 ################## VPC ##################
 
 variable "vpc_cidr" {
@@ -47,10 +58,11 @@ variable "vpc_enable_nat_gateway" {
 
 ################## ALB ##################
 
-variable "health_check_path" {
-  description = "Health check path for the default target group"
+variable "alb_health_check_path" {
+  description = "Health check path for the alb - dns/path"
   type = string
 }
+
 
 variable "alb_name" {
   description = "The Application Load Balancer name"
@@ -73,6 +85,17 @@ variable "instance_type" {
   description = "Instance type to create an instance"
   type        = string
 }
+
+variable "ec2_health_check_path" {
+  description = "Health check path for the default target group"
+  type = string
+}
+
+variable "web_server_version" {
+  description = "Version of the web server"
+  type        = string
+}
+
 
 /*variable "ssh_private_key" {
   description = "pem file of Keypair we used to login to EC2 instances"

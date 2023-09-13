@@ -139,7 +139,7 @@ resource "aws_lb_target_group" "web_servers_target_group" {
 
   health_check {
     enabled              = true
-    path                = var.health_check_path
+    path                = var.ec2_health_check_path
     port                = 80
     protocol = "HTTP"
     unhealthy_threshold = 2
@@ -189,7 +189,7 @@ resource "aws_lb_listener_rule" "lb_health_check" {
 
   condition {
     path_pattern {
-      values = [var.health_check_path]
+      values = [var.alb_health_check_path]
     }
   }
 }
@@ -279,23 +279,20 @@ resource "aws_instance" "web_servers" {
   user_data = <<-EOF
             #!/bin/bash
             sudo apt update
-            sudo apt install -y apache2
-            sudo systemctl start apache2
+            sudo apt install -y docker.io
+            sudo systemctl start docker
             sudo mkdir -p /var/www/html
             sudo mkdir -p /var/www/health
-            echo "${count.index + 1}" > ~/instanceNumber.txt
             echo "<h1>Hello from web-server-${count.index + 1}</h1>" | sudo tee /var/www/html/index.html
             echo "<h1>web-server-${count.index + 1}</h1>" | sudo tee /var/www/health/index.html
 
-              
-            #sudo apt update
-            #sudo apt install -y docker.io
-            #sudo docker run -d -p 80:80 \
-            #    --name apache-web-server \
-            #    -v /var/www/html:/usr/local/apache2/htdocs \
-            #    -v /var/www/health:/usr/local/apache2/health \
-            #    httpd:alpine
+            sudo docker run -d -p 80:80 \
+                --name apache-web-server \
+                -v /var/www/html:/usr/local/apache2/htdocs \
+                -v /var/www/health:/usr/local/apache2/health \
+                httpd:${var.web_server_version}
             EOF
+
   
   tags = {
     "Name"        = "web-server-${count.index + 1}"
