@@ -56,6 +56,10 @@ This [link](https://www.suse.com/support/kb/doc/?id=000018152) could be helpful
 
 The easiest way to run the code is to use the `manage-cluster.sh` script. <br />
 Copy the script to a text file and save the file as a shell script (.sh)<br /><br />
+* If you want the script to stop asking for account number then run this command with your number: <br />
+```sh
+export TF_VAR_account="[YOUR_AWS_ACCOUNT_NUMBER]"
+```
 The script expect 4 variables:
 1. **TERRAFORM_VERSION** - the version of the terraform to install (if -1 then do not install)
 2. **AWSCLI_VERSION** - the aws cli version to install (if -1 then do not install)
