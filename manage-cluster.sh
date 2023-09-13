@@ -103,7 +103,7 @@ stop_cluster() {
     
     cd $CLUSTER_DIR
 
-    terraform apply -auto-approve
+    terraform destroy -auto-approve
 }
 
 # Function to check the status of the cluster
