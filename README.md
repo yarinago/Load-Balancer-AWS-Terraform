@@ -44,7 +44,8 @@ Attached to this project there is a bash script to manage the clusters.<br />
 Manage actions could be installation/start/stop/status
 
 #### Architecture
-![architecture](resources\architecture.JPG)
+![architecture](https://github.com/yarinago/Load-Balancer-AWS-Terraform/assets/67272021/e745e3cb-6b8f-4830-b8a0-e3150b5a4567)
+
 
 # Getting Started
 This is how you run the code. Make sure that you follow the step correctly and you have your `Prerequisites` before going to `Installation`
