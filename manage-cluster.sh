@@ -15,14 +15,12 @@ fi
 
 TERRAFORM_VERSION="$1"
 AWSCLI_VERSION="$2"
-# Which cluster to manage
-CLUSTER_COUNT="$3"
-# Number of clusters define in main.tf
-AVAILABLE_CLUSTER_AMOUNT=2
+CLUSTER_NUMBER="$3" # Which cluster to manage
+AVAILABLE_CLUSTER_AMOUNT=2 # Number of clusters define in main.tf
 
 
 # Check if the number of clusters is greater than the maximum
-if [ $CLUSTER_COUNT -gt $MAX_CLUSTER_COUNT ]; then
+if [ $CLUSTER_NUMBER -gt $AVAILABLE_CLUSTER_AMOUNT ]; then
     echo "Error: Cannot create more than $AVAILABLE_CLUSTER_AMOUNT clusters."
     exit 1
 fi
@@ -54,7 +52,7 @@ install_awscli() {
         echo "Skipping AWS CLI installation..."
         return
     fi
-    
+
     echo "Installing AWS CLI..."
     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWSCLI_VERSION}.zip" -o "awscliv2.zip"
     unzip awscliv2.zip
@@ -68,23 +66,20 @@ install_cluster() {
     install_terraform
     install_awscli
 
-    # Loop over the number of clusters 
-    for ((i=1;i<=CLUSTER_COUNT;i++)); do 
-        echo "Installing cluster $i..." 
+    # Define the directory for the cluster 
+    CLUSTER_DIR="$DIR/cluster$CLUSTER_NUMBER" 
 
-        # Clone the repository into a new directory for each cluster 
-        CLUSTER_DIR="$DIR/cluster$i" 
-        git clone $REPO_URL $CLUSTER_DIR 
+    # Clone the repository into the directory for the cluster 
+    git clone $REPO_URL $CLUSTER_DIR 
 
-        # Navigate to the directory 
-        cd $CLUSTER_DIR 
+    # Navigate to the directory 
+    cd $CLUSTER_DIR 
 
-        # Initialize Terraform 
-        terraform init 
+    # Initialize Terraform 
+    terraform init 
 
-        # Apply the Terraform configuration 
-        terraform apply -auto-approve 
-    done
+    # Apply the Terraform configuration 
+    terraform apply -auto-approve 
 }
 
 # Function to start the cluster
@@ -96,16 +91,20 @@ start_cluster() {
 
 # Function to stop the cluster
 stop_cluster() {
-    cd $DIR
+    CLUSTER_DIR="$DIR/cluster$CLUSTER_NUMBER"
+    
+    cd $CLUSTER_DIR
 
-    terraform destroy -auto-approve
+    terraform apply -auto-approve
 }
 
 # Function to check the status of the cluster
 cluster_status() {
-    cd $DIR
+    CLUSTER_DIR="$DIR/cluster$CLUSTER_NUMBER"
+    
+   cd $CLUSTER_DIR
 
-    terraform show
+   terraform show
 }
 
 # Check the command line argument

@@ -11,6 +11,7 @@ variable "environment" {
 variable "project_name" {
   description = "Name of entire project"
   type        = string
+  default     = "beaconcure"
 }
 
 variable "instance_count" {
@@ -21,6 +22,7 @@ variable "instance_count" {
 variable "shared_credentials_files" {
   description = "The path to the aws profile's credentials files"
   type        = string
+  default     = "~/.aws/credentials"
 }
 
 variable "aws_profile" {
@@ -54,6 +56,7 @@ variable "vpc_public_subnets" {
 variable "vpc_enable_nat_gateway" {
   description = "Enable NAT gateway for VPC"
   type        = bool
+  default = true
 }
 
 ################## ALB ##################
@@ -61,24 +64,40 @@ variable "vpc_enable_nat_gateway" {
 variable "alb_health_check_path" {
   description = "Health check path for the alb - dns/path"
   type = string
+  default = "/health"
 }
 
 
 variable "alb_name" {
   description = "The Application Load Balancer name"
   type = string
+  default = "load-balancer"
 }
 
 ################## EC2 ##################
 
-variable "ec2_instance_name" {
-  description = "Name of the EC2 instance"
-  type = string
+variable "ami_name_filter" {
+  description = "The ami filter vale for the name"
+  type        = string
+  default = "ubuntu*server*22.04*hvm*ssd*"
 }
 
-variable "ami_id" {
-  description = "ami id"
+variable "ami_virtualization-type_filter" {
+  description = "The ami filter vale for the virtualization-type"
   type        = string
+  default = "hvm"
+}
+
+variable "ami_root-device-type_filter" {
+  description = "The ami filter vale for the root-device-type"
+  type        = string
+  default = "ebs"
+}
+
+variable "ami_owners_filter" {
+  description = "The ami filter vale for the owners"
+  type        = string
+  default = "099720109477" # Canonical
 }
 
 variable "instance_type" {
@@ -89,6 +108,7 @@ variable "instance_type" {
 variable "ec2_health_check_path" {
   description = "Health check path for the default target group"
   type = string
+  default = "/"
 }
 
 variable "web_server_version" {
