@@ -17,6 +17,7 @@ TERRAFORM_VERSION="$1"
 AWSCLI_VERSION="$2"
 CLUSTER_NUMBER="$3" # Which cluster to manage
 AVAILABLE_CLUSTER_AMOUNT=2 # Number of clusters define in main.tf
+CLUSTER_DIR="$DIR/cluster$CLUSTER_NUMBER" # Define the directory for the cluster 
 
 
 # Check if the number of clusters is greater than the maximum
@@ -66,9 +67,6 @@ install_cluster() {
     install_terraform
     install_awscli
 
-    # Define the directory for the cluster 
-    CLUSTER_DIR="$DIR/cluster$CLUSTER_NUMBER" 
-
     # Clone the repository into the directory for the cluster 
     git clone $REPO_URL $CLUSTER_DIR 
 
@@ -84,14 +82,24 @@ install_cluster() {
 
 # Function to start the cluster
 start_cluster() {
-    cd $DIR
+    # Check if the Terraform state file exists
+    if [ ! -f "$CLUSTER_DIR/terraform.tfstate" ]; then
+        echo "Error: No cluster found to destroy."
+        exit 1
+    fi
+    
+    cd $CLUSTER_DIR
 
     terraform apply -auto-approve
 }
 
 # Function to stop the cluster
 stop_cluster() {
-    CLUSTER_DIR="$DIR/cluster$CLUSTER_NUMBER"
+    # Check if the Terraform state file exists
+    if [ ! -f "$CLUSTER_DIR/terraform.tfstate" ]; then
+        echo "Error: No cluster found to destroy."
+        exit 1
+    fi
     
     cd $CLUSTER_DIR
 
@@ -100,7 +108,11 @@ stop_cluster() {
 
 # Function to check the status of the cluster
 cluster_status() {
-    CLUSTER_DIR="$DIR/cluster$CLUSTER_NUMBER"
+    # Check if the Terraform state file exists
+    if [ ! -f "$CLUSTER_DIR/terraform.tfstate" ]; then
+        echo "Error: No cluster found to destroy."
+        exit 1
+    fi
     
    cd $CLUSTER_DIR
 

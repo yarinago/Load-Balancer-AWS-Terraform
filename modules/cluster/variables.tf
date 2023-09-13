@@ -79,16 +79,16 @@ variable "alb_name" {
 variable "ami_name_filter" {
   description = "The ami filter vale for the name"
   type        = string
-  default = "ubuntu*server*22.04*hvm*ssd*"
+  default = "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20230516"
 }
 
-variable "ami_virtualization-type_filter" {
+variable "ami_virtualization_type_filter" {
   description = "The ami filter vale for the virtualization-type"
   type        = string
   default = "hvm"
 }
 
-variable "ami_root-device-type_filter" {
+variable "ami_root_device_type_filter" {
   description = "The ami filter vale for the root-device-type"
   type        = string
   default = "ebs"
