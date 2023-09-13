@@ -43,6 +43,8 @@ The ALB and the instances has a health endpoint:
 Attached to this project there is a bash script to manage the clusters.<br />
 Manage actions could be installation/start/stop/status
 
+#### Architecture
+![architecture](resources\architecture.JPG)
 
 # Getting Started
 This is how you run the code. Make sure that you follow the step correctly and you have your `Prerequisites` before going to `Installation`

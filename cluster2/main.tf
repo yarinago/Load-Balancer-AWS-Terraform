@@ -4,7 +4,7 @@ module "cluster2" {
   region         = "us-west-2"
   environment    = "test"
   instance_count = 2
-  aws_profile    = "default" #TODO: CHANGE TO beaconcure-terraform
+  aws_profile    = "beaconcure-terraform"
 
   vpc_cidr            = "10.0.0.0/16"
   vpc_azs             = ["us-west-2a", "us-west-2b"]
