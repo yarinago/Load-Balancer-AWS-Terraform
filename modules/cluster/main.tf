@@ -18,31 +18,29 @@ resource "aws_vpc" "vpc" {
     Name = "${var.environment}-${var.project_name}-vpc"
   }
 }
-# Public subnetss
+
 resource "aws_subnet" "public_subnet" { 
   count = length(var.vpc_public_subnets)
   cidr_block        = var.vpc_public_subnets[count.index]
   vpc_id            = aws_vpc.vpc.id
-  availability_zone = var.vpc_azs[count.index % length(var.vpc_azs)]
+  availability_zone = var.vpc_azs[count.index % length(var.vpc_azs)] # Choose one of the AZ
 
   tags = {
     Name = "${var.environment}-public-subnet-${count.index}"
   }
 }
 
-# Private subnetss
 resource "aws_subnet" "private_subnet" { 
   count = length(var.vpc_private_subnets)
   cidr_block        = var.vpc_private_subnets[count.index]
   vpc_id            = aws_vpc.vpc.id
-  availability_zone = var.vpc_azs[count.index % length(var.vpc_azs)]
+  availability_zone = var.vpc_azs[count.index % length(var.vpc_azs)] # Choose one of the AZ
   tags = {
     Name = "${var.environment}-private-subnet-${count.index}"
     Environment = var.environment
   }
 }
 
-# Internet Gateway for the public subnet
 resource "aws_internet_gateway" "internet-gw" {
   vpc_id = aws_vpc.vpc.id
 
@@ -52,6 +50,7 @@ resource "aws_internet_gateway" "internet-gw" {
   }
 }
 
+# Create nat gatewat for each AZ
 resource "aws_nat_gateway" "nat_gw" {
   count         = length(var.vpc_public_subnets)
   allocation_id = aws_eip.nat_eip[count.index].id
@@ -77,7 +76,6 @@ resource "aws_route_table" "public_route_table" {
   }
 }
 
-
 resource "aws_route_table" "private_route_table" {
   count  = length(var.vpc_private_subnets)
   vpc_id = aws_vpc.vpc.id
@@ -100,6 +98,7 @@ resource "aws_route_table_association" "public-route-association" {
   route_table_id = aws_route_table.public_route_table.id
   subnet_id      = element(aws_subnet.public_subnet.*.id, count.index)
 }
+
 resource "aws_route_table_association" "private-route-association" {
   count = length(aws_subnet.private_subnet)
   route_table_id = aws_route_table.private_route_table[count.index].id
@@ -111,7 +110,6 @@ resource "aws_route_table_association" "private-route-association" {
 # ALB
 ####################################################
 
-# Create an AWS load balancerweb_server_lb
 resource "aws_lb" "web_server_lb" {
   name               = "${var.environment}-${var.project_name}-${var.alb_name}"
   internal           = false
@@ -119,7 +117,7 @@ resource "aws_lb" "web_server_lb" {
   security_groups    = [aws_security_group.alb_security_group.id]
   subnets = aws_subnet.public_subnet.*.id
 
-  #enable_deletion_protection = true  # Set to true if you want to enable deletion protection
+  # enable_deletion_protection = true  # Set to true if you want to enable deletion protection
 
   tags = {
     Name = "load-balancer"
@@ -134,8 +132,7 @@ resource "aws_lb_target_group" "web_servers_target_group" {
   port     = 80
   protocol = "HTTP"
   vpc_id     = aws_vpc.vpc.id
-  #target_type = "instance"
-  #load_balancing_algorithm_type = "round_robin"
+  load_balancing_algorithm_type = "round_robin"
 
   health_check {
     enabled              = true
@@ -146,8 +143,7 @@ resource "aws_lb_target_group" "web_servers_target_group" {
     healthy_threshold   = 2
     timeout             = 65
     interval            = 100
-    matcher = "200"
-    
+    matcher = "200"    
   }
 }
 
@@ -156,7 +152,6 @@ resource "aws_lb_target_group" "web_servers_target_group" {
 resource "aws_lb_target_group_attachment" "web_servers_attachment" {
   count           = length(aws_instance.web_servers.*.id)
   target_group_arn = aws_lb_target_group.web_servers_target_group.arn
-  #TODO: target_id       = aws_ecs_service.web_servers.id
   target_id       = aws_instance.web_servers[count.index].id
 }
 
@@ -174,7 +169,7 @@ resource "aws_lb_listener" "web_servers_listener" {
   }
 }
 
-# Define a listener for HTTP traffic on port 80
+# Define a response to the health route of ALB
 resource "aws_lb_listener_rule" "lb_health_check" {
   listener_arn = aws_lb_listener.web_servers_listener.arn
 
@@ -207,7 +202,7 @@ resource "aws_security_group" "alb_security_group" {
     from_port        = 80
     to_port          = 80
     cidr_blocks      = ["0.0.0.0/0"]
-    #ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
   
   ingress {
@@ -216,7 +211,7 @@ resource "aws_security_group" "alb_security_group" {
     from_port        = 443
     to_port          = 443
     cidr_blocks      = ["0.0.0.0/0"]
-    #ipv6_cidr_blocks = ["::/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
   egress {
@@ -235,8 +230,8 @@ resource "aws_security_group" "ec2_security_group" {
   ingress {
     description     = "Allow http request from Load Balancer"
     protocol        = "tcp"
-    from_port       = 80 # range of
-    to_port         = 80 # port numbers
+    from_port       = 80
+    to_port         = 80
     security_groups = [aws_security_group.alb_security_group.id]
   }
 
@@ -253,6 +248,7 @@ resource "aws_security_group" "ec2_security_group" {
 # EC2
 ####################################################
 
+# Get the ami in a dynamic way using filters
 data "aws_ami" "ami" {
   most_recent = true
 
@@ -296,7 +292,6 @@ resource "aws_instance" "web_servers" {
   vpc_security_group_ids      = [aws_security_group.ec2_security_group.id]
   # Optional: iam_instance_profile = data.aws_iam_role.iam_role.name
   
-  # Define your instance configuration here (e.g., user data for running a web server)
   user_data = <<-EOF
             #!/bin/bash
             sudo apt update
