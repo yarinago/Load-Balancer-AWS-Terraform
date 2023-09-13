@@ -1,6 +1,6 @@
 variable "region" {
   description = "The AWS region to create resources in."
-  type = string
+  type        = string
 }
 
 variable "environment" {
@@ -56,22 +56,22 @@ variable "vpc_public_subnets" {
 variable "vpc_enable_nat_gateway" {
   description = "Enable NAT gateway for VPC"
   type        = bool
-  default = true
+  default     = true
 }
 
 ################## ALB ##################
 
 variable "alb_health_check_path" {
   description = "Health check path for the alb - dns/path"
-  type = string
-  default = "/health"
+  type        = string
+  default     = "/health"
 }
 
 
 variable "alb_name" {
   description = "The Application Load Balancer name"
-  type = string
-  default = "load-balancer"
+  type        = string
+  default     = "load-balancer"
 }
 
 ################## EC2 ##################
@@ -79,25 +79,25 @@ variable "alb_name" {
 variable "ami_name_filter" {
   description = "The ami filter vale for the name"
   type        = string
-  default = "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20230516"
+  default     = "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20230516"
 }
 
 variable "ami_virtualization_type_filter" {
   description = "The ami filter vale for the virtualization-type"
   type        = string
-  default = "hvm"
+  default     = "hvm"
 }
 
 variable "ami_root_device_type_filter" {
   description = "The ami filter vale for the root-device-type"
   type        = string
-  default = "ebs"
+  default     = "ebs"
 }
 
 variable "ami_owners_filter" {
   description = "The ami filter vale for the owners"
   type        = string
-  default = "099720109477" # Canonical
+  default     = "099720109477" # Canonical
 }
 
 variable "instance_type" {
@@ -107,8 +107,8 @@ variable "instance_type" {
 
 variable "ec2_health_check_path" {
   description = "Health check path for the default target group"
-  type = string
-  default = "/"
+  type        = string
+  default     = "/"
 }
 
 variable "web_server_version" {

@@ -3,7 +3,7 @@ terraform {
 
   required_providers {
     aws = {
-      source = "hashicorp/aws"
+      source  = "hashicorp/aws"
       version = ">= 5.14.0"
     }
     docker = {
@@ -13,7 +13,7 @@ terraform {
 }
 
 provider "aws" {
-  region                  = var.region
+  region                   = var.region
   shared_credentials_files = [var.shared_credentials_files]
   profile                  = var.aws_profile
 }
